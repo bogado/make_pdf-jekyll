@@ -1,0 +1,52 @@
+= Make pdf Jekyll plugin.
+Victor Bogado da Silva Lins <victor@bogado.net>
+:toc: true
+
+This is a https://jekyllrb.com/[Jekyll] plugin to enable the creation of PDFs along side the usual html documents.
+
+== Installation
+
+Add to your site `Gemfile` : 
+
+[ruby]
+----
+# …
+group :jekyll_plugins do
+    gem 'make_pdf-jekyll'
+    # … Other plugins may be here.
+end
+----
+
+Then edit your Jekyll configuration. 
+
+[yaml]
+. `_config`
+----
+# …
+destination: «some-path» (1)
+# …
+plugins:
+    - make_pdf/jekyll
+    # … Other plugins.
+
+make-pdf:
+    writer: Chrome            # Requires `Chrome-headless-render-pdf` to be installed and on the path.
+
+    # Bellow are the default settings : 
+    write-by-default: false   # If set to true enables the generation 
+    source: file:/            # Where to get the sources.
+    base_source: «some-path»  # Path where to store pdf files.
+----
+
+To each document that you want PDFs to be generated add the key `make-pdf: true` to it's front-matter.
+If the option `write-by-default` is set to true, you can disable the PDF generation with `make-pdf: false` as well.
+
+== How the PDF is created.
+
+The option 'writer' defines the strategy used to generate the PDFs.
+The only working option at the moment is 'Chrome', that uses 'Chrome-headless-render-pdf' to create the PDF.
+This may not work correctly, depending on how the asset files are specified in the output 'html' files.
+
+You can also use your 'published' version, by setting both `source:` and `base-source:` configurations.
+Use `source: http://` and `base-source: «baseurl»` to point the headless chrome to the correct URL.
+
