@@ -1,10 +1,11 @@
+require "make_pdf/command_based"
 
 # TODO: In progress.
 # Firefox css media don't work well anyway.
 #
-module MakePdf
-  class FirefoxPDFWriter
-    include Arguments
+module MakePDF
+  class FirefoxPDFWriter < PDFWriter
+    include CommandBased::Arguments
 
     def self.prefix
       '-'

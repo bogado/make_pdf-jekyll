@@ -1,5 +1,6 @@
+require "make_pdf/command_based"
 
-module MakePdf
+module MakePDF
   class Chrome < CommandBased::Writer
     COMMAND = 'chrome-headless-render-pdf'
 

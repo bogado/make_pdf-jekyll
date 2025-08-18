@@ -1,7 +1,8 @@
 require 'fileutils'
 require 'pathname'
+require 'make_pdf'
 
-module MakePdf
+module MakePDF
   module CommandBased
     module Arguments
       attr_reader :base
@@ -11,7 +12,7 @@ module MakePdf
       end
     end
 
-    class Writer < PdfWriter
+    class Writer < PDFWriter
       attr_reader :command, :options
       include Arguments
 
@@ -26,14 +27,20 @@ module MakePdf
       end
 
       def write(file, base_path:, **options)
-        logger.info("pdf-writer (#{command}): converting #{url}")
+        logger.info("pdf-writer (#{command}): converting #{file}")
 
-        arguments = make_arguments(command: @command, url: source_url*(file, **options), pdf: output_for(file, **options))
+        url = source_url(file, base_path:, **options),
+        output = output_for(file, base_path:, **options)
+        arguments = make_arguments(
+          command: @command,
+          url:,
+          pdf: output
+        )
         IO.popen([@command] + arguments, {:err =>[ :child, :out]}) do |pipe| 
-          output = pipe.read
+          std_out = pipe.read
         end
 
-        raise output if ($? != 0)
+        raise std_out if ($? != 0)
         logger.info("pdf-writer (#{command}): Wrote #{output}")
       end
 
