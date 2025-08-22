@@ -3,8 +3,32 @@ require 'make_pdf'
 
 module MakePDF
 
+  LOG_NAME = "make_pdf:"
   # MakePDF Jekyll plugin
   class Jekyll
+
+    class Logger
+
+      def initialize(logger)
+        @logger = logger
+      end
+
+      def message(*args, **options)
+        @logger.message(LOG_NAME, *args, **options)
+      end
+
+      def warn(*args, **options)
+        @logger.warn(LOG_NAME, *args, **options)
+      end
+
+      def info(*args, **options)
+        @logger.info(LOG_NAME, *args, **options)
+      end
+
+      def debug(*args, **options)
+        @logger.debug(LOG_NAME, *args, **options)
+      end
+    end
 
     class << self
       include PathManip
@@ -19,13 +43,13 @@ module MakePDF
           @base_source = @site.dest
           @logger      = Logger.new(::Jekyll.logger)
 
-          ::Jekyll.logger.debug("make_pdf:", "Initialized with #{@options}. #{@base_source}")
+          @logger.debug("Initialized with #{@options}. #{@base_source}")
         end
 
         current_options = @options.merge(current_doc.data)
-        ::Jekyll::logger.debug("make-pdf", current_options)
+        @logger.debug(current_options)
         bail = lambda do |error|
-          ::Jekyll.logger.debug("make_pdf:", error)
+          @logger.debug(error)
           false
         end
 
@@ -41,7 +65,7 @@ module MakePDF
         return bail.call("#{current_doc.name} has not opted in") if current_doc.data['make-pdf'].nil? && !@opt_in
         return bail.call("#{current_doc.name} has opted out")if current_doc.data['make-pdf'] == false
 
-        ::Jekyll.logger.info("make_pdf:", " processing #{current_doc.name}")
+        @logger.info(" processing #{current_doc.name}")
 
         @writer.new(file, output_dir, base_source: @base_source, logger: @logger, **current_options)
       end
@@ -49,7 +73,7 @@ module MakePDF
       def process(current_doc)
         writer = setup(current_doc)
 
-        ::Jekyll::logger.debug("make_pdf:", " Ignoring #{current_doc.destination("")}")
+        @logger.debug(" Ignoring #{current_doc.destination("")}")
         return if writer === false
 
         options = current_doc.data['targets']&.split(';') || []
@@ -60,7 +84,7 @@ module MakePDF
       end
 
       def render_option(writer, file, **options)
-        ::Jekyll.logger.debug('MakePDF options:', options)
+        @logger.debug("MakePDF options: #{options}")
 
         raise "File #{file} is not accessible" unless File.readable?(file)
 
@@ -71,11 +95,11 @@ module MakePDF
         rescue => error
           attempted += 1
           if attempted <= 2
-            ::Jekyll.logger.warn("MakePDF: Failed to generate #{file} retrying #{attempted}")
-            ::Jekyll.logger.warn("MakePDF: ERROR: #{error}")
+            @logger.warn("Failed to generate #{file} retrying #{attempted}")
+            @logger.warn("ERROR: #{error}")
             retry
           else
-            ::Jekyll.logger.error("MakePDF: Skipping generation of #{file} with #{options}")
+            @logger.warn("Skipping generation of #{file} with #{options}")
             raise error
           end
         end
@@ -83,7 +107,7 @@ module MakePDF
     end
   end
 
-  ::Jekyll.logger.info('MakePDF:', "loaded")
+  ::Jekyll.logger.info(LOG_NAME, "loaded")
   ::Jekyll::Hooks.register [:pages, :documents, :posts], :post_write do |doc|
     MakePDF::Jekyll.process(doc)
   end
