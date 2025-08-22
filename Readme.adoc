@@ -34,8 +34,14 @@ make-pdf:
 
     # Bellow are the default settings : 
     write-by-default: false   # If set to true enables the generation 
-    source: file:/            # Where to get the sources.
-    base_source: «some-path»  # Path where to store pdf files.
+    source: file:             # Where to get the sources.
+    base_source: «some-path»  #Path where to store pdf files.
+    # Chrome-headless-render-pdf options : 
+    no-margins: true              # Do not use margins.
+    include-background:           # Include background.
+    landscape: false              # Don't use landscape.
+    display-header-footer: false  # No header or footer.
+    # There are more options for chrome.
 ----
 
 To each document that you want PDFs to be generated add the key `make-pdf: true` to it's front-matter.
