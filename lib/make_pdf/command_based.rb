@@ -36,6 +36,7 @@ module MakePDF
           url:,
           pdf: output
         )
+        logger.debug("pdf-writer", "Executing #{@command} #{arguments}")
         IO.popen([@command] + arguments, {:err =>[ :child, :out]}) do |pipe| 
           std_out = pipe.read
         end
