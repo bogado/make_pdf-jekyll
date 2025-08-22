@@ -7,8 +7,12 @@ module MakePDF
     module Arguments
       attr_reader :base
 
-      def make_arguments(options = [], **more)
-        options.concat(more.map { |key, value| "#{self.class.prefix}#{key}#{"=#{value}" unless value == true || value.nil?}" })
+      def make_arguments(*options, **more)
+        [ options, more.map do |key, value|
+          map_key(key.to_s, value)
+        end ].flatten.map do |arg| 
+          arg.to_s
+        end
       end
     end
 
@@ -38,13 +42,13 @@ module MakePDF
         std_out = IO.popen([@command] + arguments, {:err =>[ :child, :out]}) do |pipe| 
           pipe.read
         end
-
-        raise std_out if ($? != 0)
-        logger.info("pdf-writer (#{command}): Wrote #{output}")
+        status = $?
+        raise RuntimeError.new("Failure executing #{command} with #{arguments}.\n\noutput:\n\n---\n#{std_out}\n---\n") if status != 0
+        logger.info("pdf-writer: Wrote #{output_filename}")
       end
 
       def output_for(file, base_path:, version: [], **options)
-        if @output.nil?
+        if @output_dir.nil?
           path = File.dirname(file)
         else
           path = File.expand_path(relative_path(file, base_path), @output)
