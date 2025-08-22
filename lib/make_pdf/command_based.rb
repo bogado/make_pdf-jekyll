@@ -26,19 +26,17 @@ module MakePDF
         @options = options
       end
 
-      def write(file, base_path:, **options)
-        logger.info("pdf-writer (#{command}): converting #{file}")
-
-        url = source_url(file, base_path:, **options),
-        output = output_for(file, base_path:, **options)
+      def write(source_url, output_filename, base_path:, **options)
+        logger.info("converting #{source_url} with #{@command}")
         arguments = make_arguments(
           command: @command,
-          url:,
-          pdf: output
+          source_url:,
+          output_filename:,
+          **options
         )
-        logger.debug("pdf-writer", "Executing #{@command} #{arguments}")
-        IO.popen([@command] + arguments, {:err =>[ :child, :out]}) do |pipe| 
-          std_out = pipe.read
+        logger.debug("Executing #{@command} #{arguments}")
+        std_out = IO.popen([@command] + arguments, {:err =>[ :child, :out]}) do |pipe| 
+          pipe.read
         end
 
         raise std_out if ($? != 0)

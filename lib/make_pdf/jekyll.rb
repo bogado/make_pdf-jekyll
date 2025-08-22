@@ -15,12 +15,13 @@ module MakePDF
           @site        = current_doc.site
           @options     = @site.config['make-pdf'] || {}
           @opt_in      = @options['write-by-default'] || false
-          @base_url    = @options['source'] || "file:/"
+          @base_url    = @options['source'] || "file:"
           @base_source = @site.dest
+          @logger      = Logger.new(::Jekyll.logger)
 
           ::Jekyll.logger.debug("make_pdf:", "Initialized with #{@options}. #{@base_source}")
         end
-          
+
         current_options = @options.merge(current_doc.data)
         ::Jekyll::logger.debug("make-pdf", current_options)
         bail = lambda do |error|
@@ -42,7 +43,7 @@ module MakePDF
 
         ::Jekyll.logger.info("make_pdf:", " processing #{current_doc.name}")
 
-        @writer.new(file, output, logger: ::Jekyll.logger, **current_options)
+        @writer.new(file, output_dir, base_source: @base_source, logger: @logger, **current_options)
       end
 
       def process(current_doc)
@@ -64,6 +65,7 @@ module MakePDF
         raise "File #{file} is not accessible" unless File.readable?(file)
 
         attempted = 0
+        
         begin
           writer.write(file, **options)
         rescue => error

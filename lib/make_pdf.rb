@@ -40,30 +40,37 @@ module MakePDF
       @logger = logger
       @options = options
     end
-
-    def source_url(file, base_path:Pathname.new("."), base_url: "file:/", version: [], separator: ",", **options)
-      file_path = path_of(file)
-
-      options = unless version.empty? 
-                  "##{version.join(separator)}"
-                else
-                  ""
-                end 
-      "#{base_url}#{relative_path(file_path, base_path)}/#{file_path.basename}#{options}"
+    
+    def make_source_url(file, base_path:, base_url: nil, **options)
+      base_path = Pathname.new(base_path).realpath
+      target_file = Pathname.new(file).realpath.relative_path_from(base_path)
+      if (base_url != "file:")
+        return base_url + target_file.to_s
+      else
+        return base_path + target_file.to_s
+      end
     end
 
-    def output_for(file, version, **options)
-      output = path_of(file).basename(".pdf").to_s
-      path_of(@output_dir, output + version.join("_") + ".pdf")
+    def make_pdf_filename(file, **options)
+      path_of(file).basename.sub_ext(".pdf")
+    end
+
+    def make_output_filename(file, base_path:, **options)
+      filename = make_pdf_filename(file, base_path:, **options) 
+      output = @output_dir / filename
+      @logger.debug("filenane : #{filename} output_dir: #{output_dir} output_filename: #{output}")
+      output
     end
 
     def process(file, version: [], **options)
       options = @options.merge(options)
+      output_filename = make_output_filename(file, version: version, **options)
       write(
-        source_url(file, vesrsion: version, **options),
-        output_for(file, version: version, **options),
+        make_source_url(file, vesrsion: version, **options),
+        output_filename,
         **options
       )
+      output_filename
     end
   end
 
