@@ -1,5 +1,6 @@
 require 'jekyll'
 require 'make_pdf'
+require 'path_of'
 
 module MakePDF
   LOG_NAME = "make_pdf:"
@@ -39,7 +40,10 @@ module MakePDF
     def initialize(current_doc, **options)
       @file     = current_doc.destination(@base_source)
       @options = filter_options(current_doc, **options)
-      logger.debug("base_paths: input → #{@options[:input_base_path]} output → #{@options[:output_base_path]}")
+      splited_url = site.config["url"].match(Regexp.new("^\(.*\)://\([^/]+\)/?.*$")).to_a
+      @options[:input_base_url] ||= site.baseurl
+      @options[:input_host] ||= splited_url[2]
+      logger.debug("base_paths: input → #{@options[:input_base_url]} output → #{@options[:output_base_path]} host → #{@options[:input_host]}")
 
       current_options = make_options(@options, site_options, filter_options(current_doc))
       output_dir = @options[:output_dir] || path_of(site.dest).dirname
@@ -123,9 +127,12 @@ module MakePDF
         config = site.config["make-pdf"]||{}
         logger(logger: ::Jekyll.logger, level: (config["log-map-level"] || :debug).to_sym, verbose: config['log-verbose'])
         @site         = site
+        input_location  = path_of(site.dest)
+        input_base_url = relative_path_of(site.baseurl)
         @site_options = { 
           :output_base_path => site.source, 
-          :input_base_path => site.dest,
+          input_location:,
+          input_base_url:,
           :input_scheme => "file"
         }.merge(make_options(@site.config["make-pdf"], options))
         logger.debug("Initialized with #{self.site_options}.")

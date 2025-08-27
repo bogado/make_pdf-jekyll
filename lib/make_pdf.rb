@@ -1,20 +1,10 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require 'path_of'
 
 module MakePDF
   module PathManip
-    def path_of(base, *path_components)
-      other = unless path_components.empty?
-                path_components
-                  .map { |component| path_of(component) }
-                  .sum Pathname.new(".")
-              else
-                Pathname.new("")
-              end
-      base = Pathname.new(".") if base.nil?
-      if base.instance_of?(Pathname) then base else Pathname.new(base) end + other
-    end
 
     def relative_path(file, base_path)
       path_of(file).relative_path_from(path_of(base_path))
@@ -77,40 +67,41 @@ module MakePDF
     include PathManip
     attr_reader :output_dir, :source_url, :logger
 
-    def initialize(input_base_path:, output_base_path:, input_scheme: "file", logger: Logger.new() ,**options)
+    def initialize(input_base_url:, output_base_path:, input_scheme: "file", input_host: nil, logger: Logger.new() ,**options)
       @logger = logger
-      @options = options.merge({ input_base_path:, output_base_path:, input_scheme: })
+      raise ArgumentError.new("Scheme `#{input_scheme}` requires an `input_host`.") if input_scheme != "file" && input_host.nil?
+      @options = options.merge({ input_base_url:, output_base_path:, input_scheme:, input_host: })
+
     end
     
-    def make_source_url(file, input_base_path:, output_base_path:, input_scheme: , **options)
-      target_file = relative_path(file, input_base_path:, **options)
+    def make_relative_file(file, input_location:, **options)
+      path_of(file).relative_path_from(path_of(input_location))
+    end
+
+    def make_source_url(file, input_base_url:, output_base_path:, input_scheme: , input_host: , input_location:, **options)
+      target_file = make_relative_file(file, input_location:, **options)
+      input_location = path_of(input_location)
+      input_base_url = relative_path_of(input_base_url)
       if (input_scheme != "file")
-        return input_scheme + "://" + output_base_path + target_file.to_s
+        return input_scheme + "://" + input_host + "/" + (input_base_url / target_file).to_path
       else
-        return input_base_path + target_file.to_s
+        return (input_location / input_location / target_file).to_path
       end
     end
 
-    def relative_path(file, input_base_path:, **options)
-      base_path = Pathname.new(input_base_path)
-      result = Pathname.new(file).relative_path_from(base_path).dirname
-      @logger.verbose("relative_path(#{file}, #{input_base_path}) → base_path: #{base_path} ⇒ #{result}")
+    def make_pdf_filename(file, output_base_path:, input_location:, output_dir:, **options)
+      base_path = path_of(output_base_path) 
+      filepath = make_relative_file(file, input_location:).sub_ext(".pdf")
+      result = base_path / relative_path_of(output_dir) / filepath
+      @logger.verbose("make_pdf_filename(#{file}, #{output_base_path}) → base_path: #{base_path}, filepath: #{filepath} ⇒ #{result}")
       result
     end
 
-    def make_pdf_filename(file, input_base_path:, **options)
-      base_path = relative_path(file, input_base_path:, **options)
-      filename = Pathname.new(file).basename.sub_ext(".pdf")
-      result = base_path / filename
-      @logger.verbose("make_pdf_filename(#{file}, #{input_base_path}) → base_path: #{base_path}, filename: #{filename} ⇒ #{result}")
-      result
-    end
-
-    def make_output_filename(file, input_base_path:, output_base_path:, output_dir: ".", **options)
-      @logger.verbose("make_output_filename(#{file}, #{input_base_path}, #{output_base_path})")
-      filename = make_pdf_filename(file, input_base_path:, **options) 
-      output_base_path = Pathname.new(output_base_path)
-      output = output_base_path / Pathname.new(output_dir) / filename
+    def make_output_filename(file, input_location:, output_base_path:, output_dir: ".", **options)
+      @logger.verbose("make_output_filename(#{file}, #{input_location}, #{output_base_path})")
+      filename = make_pdf_filename(file, output_base_path:, output_dir:, input_location:,  **options) 
+      output_base_path = path_of(output_base_path)
+      output = output_base_path / relative_path_of(output_dir) / filename
       FileUtils::mkdir_p(output.dirname)
       @logger.debug("filename: #{filename} ⇒ #{output}")
       output
