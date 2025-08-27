@@ -8,11 +8,14 @@ module MakePDF
       attr_reader :base
 
       def make_arguments(*options, **more)
-        [ options, more.map do |key, value|
-          map_key(key.to_s, value)
-        end ].flatten.map do |arg| 
-          arg.to_s
-        end
+        [ 
+          options.map { |val| val.to_s },
+          more
+          .transform_keys { |key| key.to_s.gsub('_','-') }
+          .filter_map do |key, value|
+            map_option_key(key, value.to_s)
+          end
+        ].flatten
       end
     end
 
@@ -24,13 +27,12 @@ module MakePDF
         '--'
       end
 
-      def initialize(url, output_dir, command: COMMAND, **options)
-        super(url, output_dir, **options)
+      def initialize(command: COMMAND, **options)
+        super(**options)
         @command = command
-        @options = options
       end
 
-      def write(source_url, output_filename, base_path:, **options)
+      def write(source_url, output_filename, **options)
         logger.info("converting #{source_url} with #{@command}")
         arguments = make_arguments(
           command: @command,
@@ -47,11 +49,14 @@ module MakePDF
         logger.info("pdf-writer: Wrote #{output_filename}")
       end
 
-      def output_for(file, base_path:, version: [], **options)
+      def output_for(file, output_base_path: ".", version: [], **options)
+        output_base_path = Pathname.new(output_base_path)
+        file = Pathname.new(file)
+
         if @output_dir.nil?
-          path = File.dirname(file)
+          path = output_base_path / file.dirname
         else
-          path = File.expand_path(relative_path(file, base_path), @output)
+          path = File.expand_path(relative_path(file, output_base_path), @output_dir)
         end
 
         FileUtils.mkdir_p path

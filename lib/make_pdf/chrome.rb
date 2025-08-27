@@ -23,16 +23,16 @@ module MakePDF
       "animation-time-budget": nil,
     } 
 
-    def initialize(source_url, output_dir, **options)
-      super(source_url, output_dir, command: COMMAND, **options.merge(DEFAULT_OPTIONS))
+    def initialize(**options)
+      super(command: COMMAND, **options.merge(DEFAULT_OPTIONS))
     end
 
-    def map_key(key, value)
+    def map_option_key(key, value)
       case key
-      when 'source_url'
-        [ "--url", value ]
-      when 'output_filename'
-        [ "--pdf", value ]
+      when 'source-url'
+        [ '--url', value ]
+      when 'output-filename'
+        [ '--pdf', value ]
       when DEFAULT_OPTIONS.keys.method(:include?)
         case value
         when false, nil?

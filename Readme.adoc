@@ -19,6 +19,9 @@ end
 
 Then edit your Jekyll configuration. 
 
+WARNING: The schema here is still in experimental phase.
+Expect changes until version 1.0 reached.
+
 [yaml]
 . `_config`
 ----
@@ -30,19 +33,24 @@ plugins:
     # … Other plugins.
 
 make-pdf:
-    writer: Chrome            # Requires `Chrome-headless-render-pdf` to be installed and on the path.
+    writer: Chrome                              # Requires `Chrome-headless-render-pdf` to be installed and on the path.
 
     # Bellow are the default settings : 
-    write-by-default: false   # If set to true enables the generation 
-    source: file:             # Where to get the sources.
-    base_source: «some-path»  #Path where to store pdf files.
+    write-by-default: false                     # If set to true enables the generation 
+    source: file:                               # Where to get the sources.
+    input-base-path: «some-relative-path»       # base path common to all input files.
+    output-base-path: «some-path»               # base path where the pdf are stored.
+    input-scheme: «http|file»                   # How to access the input HTML.
+    output-dir: «some-path»                     # Path where to store pdf files.
+
     # Chrome-headless-render-pdf options : 
-    no-margins: true              # Do not use margins.
-    include-background:           # Include background.
-    landscape: false              # Don't use landscape.
-    display-header-footer: false  # No header or footer.
+    no-margins: true                            # Do not use margins.
+    include-background:          sudo dnf install rubygem-{irb,rake,rbs,rexml,typeprof,test-unit} ruby-bundled-gems               # Include background.
+    landscape: false                            # Don't use landscape.
+    display-header-footer: false                # No header or footer.
     # There are more options for chrome.
 ----
+<1> This is a limitation, I will update this in the future.
 
 To each document that you want PDFs to be generated add the key `make-pdf: true` to it's front-matter.
 If the option `write-by-default` is set to true, you can disable the PDF generation with `make-pdf: false` as well.
