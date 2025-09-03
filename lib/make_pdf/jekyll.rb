@@ -6,8 +6,8 @@ module MakePDF
   LOG_NAME = "make_pdf:"
 
   # MakePDF Jekyll plugin
-  class Jekyll
-    attr_reader :reason
+  class Processor
+    attr_reader :reason, :doc, :name
 
     def valid?
       @reason.nil?
@@ -37,13 +37,15 @@ module MakePDF
       end.to_h.merge(options)
     end
 
-    def initialize(current_doc, **options)
-      @file     = current_doc.destination(@base_source)
+    def initialize(site, current_doc, **options)
+      @site    = site
+      @file    = current_doc.destination(@base_source)
       @options = filter_options(current_doc, **options)
+      @name    = current_doc.name
+
       logger.debug("base_paths: input → #{@options[:input_base_url]} output → #{@options[:output_base_path]} host → #{@options[:input_host]}")
 
-      current_options = make_options(@options, site_options, filter_options(current_doc))
-      output_dir = @options[:output_dir] || path_of(site.dest).dirname
+      current_options = make_options(@options, options, filter_options(current_doc))
 
       logger.debug("options : #{current_options}")
 
@@ -52,13 +54,18 @@ module MakePDF
       return if check_failure(File.extname(@file) != '.html', "#{@file} is not an html")
 
       return if check_failure(current_options[:make_pdf].nil? && !@opt_in, "#{current_doc.name} has not opted in")
+
       return if check_failure(current_options[:make_pdf] == false, "#{current_doc.name} has opted out")
 
-      writer = current_options[:writer]
+      writer = current_options[:writer] || site.options[:writer]
       return if check_failure(writer.nil?, "No writer defined for #{current_doc.name} (#{writer})")
 
-      logger.info(" processing #{current_doc.name}")
       @writer = MakePDF.const_get(writer.capitalize).new(logger:, **current_options)
+      @doc = current_doc
+    end
+
+    def output_dir
+      @writer.output_dir
     end
 
     def targets
@@ -66,10 +73,12 @@ module MakePDF
     end
 
     def method_missing(method_name, *args, **options)
-      if not Jekyll.site_options.nil? and Jekyll.site_options.include?(method_name)
-        return Jekyll.site_options[method_name]
-      elsif Jekyll.respond_to?(method_name, false)
-        return Jekyll.send(method_name, *args, **options)
+      if @options.include?(method_name)
+        return @options[method_name]
+      elsif not @site.options.nil? and @site.options.include?(method_name)
+        return @site.options[method_name]
+      elsif @site.respond_to?(method_name, false)
+        return @site.send(method_name, *args, **options)
       else
         super
       end
@@ -80,6 +89,7 @@ module MakePDF
 
       attempted = 0
       begin
+        logger.info("processing #{@file}")
         @writer.process(@file, **options.merge(@options))
       rescue => error
         attempted += 1
@@ -103,9 +113,19 @@ module MakePDF
       end
     end
 
-    class << self
+    class Site
       include PathManip
-      attr_reader :site_options, :site
+      attr_reader :options, :site, :logger
+
+      def default_options
+        return { 
+          output_base_path: site.source, 
+          input_location: path_of(site.dest),
+          input_base_url: relative_path_of(site.baseurl[1..]),
+          input_host: site.config["url"].match(Regexp.new("^[^:]*://\([^/]+\)/?.*$"))[1],
+          input_scheme: "file"
+        }.freeze
+      end
 
       def make_options(options, *more_options)
         return {} if options.nil?
@@ -117,47 +137,49 @@ module MakePDF
           end
       end
 
-      def logger(**options)
-        @logger ||= MakePDF::Logger.new(**options)
-      end
-
-      def setup(site, **options)
-        return unless @site.nil?
-
+      def initialize(site, **options)
         config = site.config["make-pdf"]||{}
-        logger(logger: ::Jekyll.logger, level: (config["log-map-level"] || :debug).to_sym, verbose: config['log-verbose'])
+        @logger = MakePDF::Logger.new(logger: ::Jekyll.logger, level: (config["log-map-level"] || :debug))
         @site         = site
-        input_location  = path_of(site.dest)
-        input_base_url = relative_path_of(site.baseurl[1..])
-        splited_url = site.config["url"].match(Regexp.new("^[^:]*://\([^/]+\)/?.*$")).to_a
-        input_host = splited_url[1]
-        @site_options = { 
-          :output_base_path => site.source, 
-          input_location:,
-          input_base_url:,
-          input_host:,
-          :input_scheme => "file"
-        }.merge(make_options(@site.config["make-pdf"], options))
-        logger.debug("Initialized with #{self.site_options}.")
+        @options = default_options.merge(make_options(@site.config["make-pdf"], options))
+        @queue        = []
+        logger.debug("Initialized with #{self.options}.")
       end
 
-      def process(current_doc, **options)
-        setup(current_doc.site, **options) if @site.nil?
+      def queue(processor)
+        logger.info("Adding #{processor.name} to queue")
+        @queue.push(processor)
+      end
 
-        processor = self.new(current_doc)
-
-        unless processor.valid?
-          logger.debug "Ignoring #{current_doc.name} ⇒ #{processor.reason}"
-          return false
+      def <<(doc)
+        processor = Processor.new(self, doc, **@options)
+        if processor.valid?
+          queue(processor)
+        else
+          logger.info("Skip #{doc.name} => #{processor.reason}")
         end
+      end
 
-        processor.process(**@site_options)
+      def process
+        @queue.each do |processor|
+          processor.process(**@options)
+        end
       end
     end
   end
-end
 
-::Jekyll.logger.info("Loaded #{MakePDF::LOG_NAME} plugin")
-::Jekyll::Hooks.register [:pages, :documents, :posts], :post_write do |doc|
-  MakePDF::Jekyll.process(doc)
+  ::Jekyll.logger.info("Loaded #{MakePDF::LOG_NAME} plugin")
+
+  ::Jekyll::Hooks.register [:site], :after_init do |site|
+    @@site = MakePDF::Processor::Site.new(site)
+    @@site.logger.info("site :after_init #{@@site}")
+  end
+
+  ::Jekyll::Hooks.register [:pages, :documents, :posts], :post_write do |doc|
+    @@site << doc
+  end
+
+  ::Jekyll::Hooks.register [:site], :post_write do |site|
+    @@site.process
+  end
 end

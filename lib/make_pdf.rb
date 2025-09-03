@@ -110,10 +110,6 @@ module MakePDF
     def process(file, version: [], **options)
       options = @options.merge(options)
       output_filename = make_output_filename(file, version: version, **options)
-      if output_filename.file? then
-        @logger.info("Skipping #{file} as #{output_filename} already exists")
-        return
-      end
       write(
         make_source_url(file, vesrsion: version, **options),
         output_filename,
