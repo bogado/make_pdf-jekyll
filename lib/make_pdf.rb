@@ -125,6 +125,5 @@ module MakePDF
 end
 
 Dir[File.join(__dir__, 'make_pdf/', '**', '*.rb')].each do |file| 
-  print "#{file}\n"
   require file
 end
