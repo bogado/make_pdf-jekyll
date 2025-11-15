@@ -67,13 +67,12 @@ module MakePDF
     include PathManip
     attr_reader :output_dir, :source_url, :logger
 
-    def initialize(input_base_url:, output_base_path:, input_scheme: "file", input_host: nil, logger: Logger.new() ,**options)
+    def initialize(input_base_url:, output_base_path:, output_name: nil, input_scheme: "file", input_host: nil, logger: Logger.new() ,**options)
       @logger = logger
       raise ArgumentError.new("Scheme `#{input_scheme}` requires an `input_host`.") if input_scheme != "file" && input_host.nil?
-      @options = options.merge({ input_base_url:, output_base_path:, input_scheme:, input_host: })
-
+      @options = options.merge({ input_base_url:, output_base_path:, input_scheme:, input_host:, output_name: output_name || make_pdf_filename(input_base_url) })
     end
-    
+ 
     def make_relative_file(file, input_location:, **options)
       path_of(file).relative_path_from(path_of(input_location))
     end
@@ -90,8 +89,8 @@ module MakePDF
     end
 
     def make_pdf_filename(file, output_base_path:, input_location:, output_dir:, **options)
-      base_path = path_of(output_base_path) 
-      filepath = make_relative_file(file, input_location:).sub_ext(".pdf")
+      base_path = path_of(output_base_path)
+      filepath = make_relative_file(path_of(file).dirname, input_location:)
       result = base_path / relative_path_of(output_dir) / filepath
       @logger.verbose("make_pdf_filename(#{file}, #{output_base_path}) → base_path: #{base_path}, filepath: #{filepath} ⇒ #{result}")
       result

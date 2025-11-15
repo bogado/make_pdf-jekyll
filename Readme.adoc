@@ -64,3 +64,15 @@ This may not work correctly, depending on how the asset files are specified in t
 You can also use your 'published' version, by setting both `source:` and `base-source:` configurations.
 Use `source: http://` and `base-source: «baseurl»` to point the headless chrome to the correct URL.
 
+== Using front-matter
+
+You can use the `front-matter` properties on your pages to setup any of the options set on the `_config` file.
+Any option that starts with `make-pdf-` is read as targeted for this plugin.
+Options defined on pages will take precedence over globally defined ones.
+
+For example, setting `make-pdf-include-background: false` on you front-matter will stop `chrome` from printing the backgrounds for this document.
+
+.Other configuration options
+`make-pdf:`:: Enable or disable pdf generation for this page.
+`make-pdf-name:`:: Use a different file name for the PDF of this page.
+Useful for "index" pages, for example.

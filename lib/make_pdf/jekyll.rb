@@ -46,6 +46,7 @@ module MakePDF
       logger.debug("base_paths: input → #{@options[:input_base_url]} output → #{@options[:output_base_path]} host → #{@options[:input_host]}")
 
       current_options = make_options(@options, options, filter_options(current_doc))
+      current_options[:output_name] ||= @name + ".pdf"
 
       logger.debug("options : #{current_options}")
 
