@@ -88,20 +88,22 @@ module MakePDF
       end
     end
 
-    def make_pdf_filename(file, output_base_path:, input_location:, output_dir:, **options)
+    def make_pdf_filename(file, output_base_path:, input_location:, output_name:, output_dir:, **options)
       base_path = path_of(output_base_path)
       filepath = make_relative_file(path_of(file).dirname, input_location:)
-      result = base_path / relative_path_of(output_dir) / filepath
+      result = base_path / relative_path_of(output_dir) / filepath / output_name
       @logger.verbose("make_pdf_filename(#{file}, #{output_base_path}) → base_path: #{base_path}, filepath: #{filepath} ⇒ #{result}")
       result
     end
 
-    def make_output_filename(file, input_location:, output_base_path:, output_dir: ".", **options)
+    def make_output_filename(file, input_location:, output_base_path:, output_name:, output_dir: ".", **options)
       @logger.verbose("make_output_filename(#{file}, #{input_location}, #{output_base_path})")
-      filename = make_pdf_filename(file, output_base_path:, output_dir:, input_location:,  **options) 
+      filename = make_pdf_filename(file, output_base_path:, output_dir:, output_name:, input_location:,  **options) 
       output_base_path = path_of(output_base_path)
       output = output_base_path / relative_path_of(output_dir) / filename
-      FileUtils::mkdir_p(output.dirname)
+      
+      FileUtils::mkdir_p(output.dirname) unless (output.dirname.directory?)
+
       @logger.debug("filename: #{filename} ⇒ #{output}")
       output
     end
