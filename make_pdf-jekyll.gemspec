@@ -5,7 +5,7 @@ Gem::Specification.new do |s|
   s.description           = 'Allows that some documents, or pages to have a pdf version pre generated.'
   s.authors               = ['Victor Bogado da Silva Lins']
   s.email                 = 'victor@bogado.net  '
-  s.required_ruby_version = '>= 3.0.0'
+  s.required_ruby_version = '>= 4.0.0'
   s.files = [
     'lib/make_pdf/chrome.rb',
     'lib/make_pdf/firefox.rb',
