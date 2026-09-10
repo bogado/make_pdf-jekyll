@@ -12,14 +12,14 @@ module MakePDF
     end
 
     def initialize(options)
-      Processor.logger.info('MakePDF firefox:', options)
+      Processor.logger.debug('MakePDF firefox:', options)
       @args = make_arguments(**options)
       @driver_opts = Selenium::WebDriver::Firefox::Options.new(args: @opts)
       setup
     end
 
     def setup
-      Processor.logger.info('MakePDF firefox: start driver')
+      Processor.logger.debug('MakePDF firefox: start driver')
       @driver = Selenium::WebDriver.for :firefox, capabilities: @driver_opts
     end
 

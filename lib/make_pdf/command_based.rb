@@ -33,20 +33,20 @@ module MakePDF
       end
 
       def write(source_url, output_filename, **options)
-        logger.info("converting #{source_url} with #{@command}")
+        logger.debug("converting #{source_url} with #{@command}")
         arguments = make_arguments(
           command: @command,
           source_url:,
           output_filename:,
           **options
         )
-        logger.debug("Executing #{@command} #{arguments}")
+        logger.verbose("Executing #{@command} #{arguments}")
         std_out = IO.popen([@command] + arguments, {:err =>[ :child, :out]}) do |pipe| 
           pipe.read
         end
         status = $?
         raise RuntimeError.new("Failure executing #{command} with #{arguments}.\n\noutput:\n\n---\n#{std_out}\n---\n") if status != 0
-        logger.info("pdf-writer: Wrote #{output_filename}")
+        logger.verbose("pdf-writer: Wrote #{output_filename}")
       end
 
       def output_for(file, output_base_path: ".", version: [], **options)

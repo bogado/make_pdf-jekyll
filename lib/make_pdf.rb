@@ -3,6 +3,8 @@
 require 'fileutils'
 require 'path_of'
 
+require_relative "./pdf_logger.rb"
+
 module MakePDF
   module PathManip
 
@@ -11,63 +13,11 @@ module MakePDF
     end
   end
 
-  class Logger
-    LEVELS = [ :debug, :info, :warn, :error ]
-
-    def level
-      @min_level || 0
-    end
-
-    def initialize(logger: nil, level: :debug, verbose: false)
-      @logger = logger
-      @min_level = LEVELS.index(level) || 2
-      @verbose = verbose
-      write(:debug, "logging at least level #{LEVELS[@min_level].to_s} with #{logger}")
-    end
-
-    def write(level, *args)
-      print("#{level.to_s} : ", *args.map do |msg|
-        if (msg.size > 80)
-          msg[0..79] + "…"
-        else
-          msg
-        end
-      end.join("\n"), "\n")
-      return
-    end
-
-    def verbose(*args)
-      if (@verbose)
-        @logger.send(LEVELS[self.level], LOG_NAME, *args)
-      end
-    end
-
-    def method_missing(method_name, *args, **options)
-      if @logger.nil? and LEVELS.include?(method_name)
-        return write(method_name, *args)
-      end
-
-      if accepts?(method_name)
-        @logger.send(LEVELS[[LEVELS.index(method_name), self.level].max], LOG_NAME, *args, **options)
-      else
-        super
-      end
-    end
-
-    def accepts?(method_name)
-      LEVELS.include?(method_name) and @logger.respond_to?(method_name, false) 
-    end
-
-    def respond_to_missing?(method_name, include_private = false)
-      accepts?(method_name) || super
-    end
-  end
-
   class PDFWriter
     include PathManip
     attr_reader :output_dir, :source_url, :logger
 
-    def initialize(input_base_url:, output_base_path:, output_name: nil, input_scheme: "file", input_host: nil, logger: Logger.new() ,**options)
+    def initialize(input_base_url:, output_base_path:, output_name: nil, input_scheme: "file", input_host: nil, logger: PdfLogger.new(self.class.name) ,**options)
       @logger = logger
       raise ArgumentError.new("Scheme `#{input_scheme}` requires an `input_host`.") if input_scheme != "file" && input_host.nil?
       @options = options.merge({ input_base_url:, output_base_path:, input_scheme:, input_host:, output_name: output_name || make_pdf_filename(input_base_url) })

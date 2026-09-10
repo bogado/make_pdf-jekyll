@@ -4,6 +4,8 @@ require 'path_of'
 require 'digest'
 require 'uri'
 
+require_relative '../pdf_logger.rb'
+
 module MakePDF
   LOG_NAME = 'make_pdf:'.freeze
 
@@ -40,22 +42,22 @@ module MakePDF
 
       @site    = site
       config   = site.config['make-pdf'] || {}
-      @logger  = MakePDF::Logger.new(logger: ::Jekyll.logger, level: config['log-map-level'] || :info)
+      @logger  = MakePDF::PdfLogger.new(logger: ::Jekyll.logger, level: config['log-map-level'].to_sym || :warn, name: LOG_NAME)
       @options = default_options.merge(make_options(@site.config['make-pdf'], options))
       @queue   = []
-      @hashes  = site.data[metadata] || {}
+      @hashes  = YAML::safe_load_file(metadata_file)
 
-      logger.debug("Initialized with #{self.options}.")
+      logger.verbose("Initialized with #{self.options}.")
     end
 
     def queue(processor)
-      logger.verbose("Adding #{processor.name} to queue")
       @queue.push(processor)
     end
 
     def <<(doc)
       processor = Processor.new(self, doc, **@options)
       if processor.valid?
+        logger.debug("Adding #{processor.name} to queue")
         queue(processor)
       else
         logger.verbose("Skip #{doc.name} => #{processor.reason}")
@@ -78,6 +80,8 @@ module MakePDF
     end
 
     def save_hashes
+      logger.debug("Saving hash file : #{metadata_file}")
+      logger.verbose("Hashes: #{@hashes.to_yaml}")
       File.open(metadata_file, 'w') do |file|
         file.write(@hashes.to_yaml)
       end
@@ -86,13 +90,12 @@ module MakePDF
     def process
       @queue.each do |processor|
         hash = processor.filehash
-        if hash != @hashes[processor.file]
+        if hash != @hashes[processor.source.to_s]
           processor.process(**@options)
           @hashes[processor.source.to_s] = hash
         else
           processor.skip('Not changed')
         end
-        processor
       end
       save_hashes
     end
@@ -137,7 +140,7 @@ module MakePDF
     end
 
     def skip(reason)
-      logger.verbose("Skipped #{@file} #{reason}")
+      logger.info("Skipped #{@file} #{reason}")
     end
 
     def initialize(site, current_doc, **options)
@@ -217,8 +220,8 @@ module MakePDF
     public
 
     def render_option(**options)
+      logger.info("processing #{@file}")
       logger.debug("MakePDF rendering options #{options}")
-      logger.verbose("processing #{@file}")
       try("Process #{@file}", 3) do
         @writer.process(@file, **options.merge(@options))
       end
@@ -242,7 +245,7 @@ module MakePDF
 
   ::Jekyll::Hooks.register [:site], :after_init do |site|
     @pdf_site = MakePDF::MakePDFSite.new(site)
-    @pdf_site.logger.info("site :after_init #{@pdf_site}")
+    @pdf_site.logger.debug("site :after_init #{@pdf_site}")
   end
 
   ::Jekyll::Hooks.register [:pages, :documents, :posts], :post_write do |doc|
