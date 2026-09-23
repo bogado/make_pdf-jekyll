@@ -45,7 +45,7 @@ module MakePDF
       @logger  = MakePDF::PdfLogger.new(logger: ::Jekyll.logger, level: config['log-map-level'].to_sym || :warn, name: LOG_NAME)
       @options = default_options.merge(make_options(@site.config['make-pdf'], options))
       @queue   = []
-      @hashes  = YAML::safe_load_file(metadata_file)
+      @hashes  = load_hashes
 
       logger.verbose("Initialized with #{self.options}.")
     end
@@ -65,11 +65,16 @@ module MakePDF
     end
 
     def metadata
-      'make_pdf_hashes'
+      '_make_pdf_hashes.configuration'
+    end
+
+    def load_hashes
+      return {} unless File.readable?(metadata_file)
+      YAML::safe_load_file(metadata_file)
     end
 
     def metadata_dir
-      result = Pathname.new(site.config['data_dir'])
+      result = Pathname.new(site.config['cache_dir'])
       Dir.mkdir(result) unless Dir.exist?(result)
 
       result
