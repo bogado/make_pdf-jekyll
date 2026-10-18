@@ -17,11 +17,12 @@ module MakePDF
       path_from(front).join(*paths.map { |p| path_from(p) })
     end
 
-    module_function :path_from, :join_paths
+    module_function :join_paths, :path_from
 
     attr_reader :path
 
-    def initialize(*parts, **_opts)
+    def initialize(*parts, root: nil, **_opts)
+      raise TypeError, "Root needs to respond to `scheme`" unless root.respond_to?(:scheme) or root.nil?
       @path = join_paths(*parts)
     end
 
@@ -33,44 +34,70 @@ module MakePDF
       false
     end
 
-    def host
-      root.host
-    end
-
-    def scheme
-      root.scheme
-    end
-
     def root
-      raise NotImplementedError, "#{self.class} must implement #root"
+      raise NotImplementedError, "Root was not implemeted."
     end
 
     def to_url
-      URI::Generic.build(scheme: scheme, host: host, path: to_path.to_s)
+      host = nil
+      host = root.host if root.respond_to?(:host)
+      URI::Generic.build(scheme: root.scheme, host: host, path: to_path.to_s)
     end
   end
 
-  module FileSystemObject
+  module RootedPathObject
     include PathObject
-
     attr_reader :root
 
-    def initialize(*_args, root:, host: 'localhost', **options)
+    def initialize(*parts, root:, **opts)
       super
       @root = root
-      @host = host
     end
 
+    def with_root(new_root)
+      self.class.new(path, root: new_root)
+    end
+  end
+
+  module Readable
+    def read(&block)
+      return to_enum(:read) unless block_given?
+
+      if root.scheme == "file"
+        to_path.open("r") { |io| io.each_line(&block) }
+      else
+        URI.open(to_url) { |io| io.each_line(&block) }
+      end
+    end
+  end
+
+  module Writable
+    def write(&block)
+      create unless valid?
+
+      to_path.write('w', &block)
+    end
+  end
+
+  class RootDir
+    include PathObject
+
     def valid?
-      to_path.exist?
+      full_path = to_path
+      full_path.exist? and full_path.directory?
     end
 
     def scheme
       return "file"
     end
+
+    def create
+      return if valid?
+      to_path.mkpath
+    end
   end
 
-  module HttpObject
+  class HttpRoot
     include PathObject
 
     attr_reader :host
@@ -88,61 +115,30 @@ module MakePDF
     def scheme = "http#{is_secure? ? 's':''}"
   end
 
-  module Readable
-    def read(&block)
-      return to_enum(:read) unless block_given?
-
-      if scheme == "file"
-        to_path.open("r") { |io| io.each_line(&block) }
-      else
-        URI.open(to_url) { |io| io.each_line(&block) }
-      end
-    end
-  end
-
-  module Writable
-    def write(&block)
-      create unless is_valid?
-
-      to_path.write('w', &block)
-    end
-  end
-
-  class RootDir
-    include FileSystemObject
-
-    def valid?
-      super and to_path.directory?
-    end
-
-    def create
-      return if valid
-      to_path.mkpath
-    end
-  end
-
   class SourceFile
-    include FileSystemObject
+    include RootedPathObject
     include Readable
 
-    def valid? = super && to_path.file?
-
-    def read(&block) = to_path.open('r', &block)
+    def valid?
+      root.valid? && to_path.file?
+    end
   end
 
   class TargetFile < SourceFile
     include Writable
 
+    def with_root(new_root)
+      if new_root.scheme.to_s.start_with?("http")
+        raise TypeError, "TargetFile cannot be rooted to a remote (#{new_root.scheme}) root"
+      end
+
+      super
+    end
+
     def create()
       root.create if not root.valid?
 
       FileUtils.touch(to_path)
-    end
-
-    def write(&block)
-      create unless valid? # This may create the root dir also.
-
-      to_path.open('w', &block)
     end
   end
 end
