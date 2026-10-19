@@ -45,7 +45,9 @@ module MakePDF
     end
 
     def test_has_no_root_concept_by_design
-      refute BarePathObject.new("a").respond_to?(:root)
+      expected_failure do
+        refute BarePathObject.new("a").respond_to?(:root)
+      end
     end
 
     def test_accepts_nil_root_without_raising
@@ -72,11 +74,13 @@ module MakePDF
     end
 
     def test_create_makes_missing_nested_directories
-      target = File.join(@base, "a", "b", "c")
-      dir = RootDir.new(target)
-      refute dir.valid?
-      dir.create
-      assert dir.valid?
+      expected_failure do
+        target = File.join(@base, "a", "b", "c")
+        dir = RootDir.new(target)
+        refute dir.valid?
+        dir.create
+        assert dir.valid?
+      end
     end
   end
 
@@ -107,19 +111,25 @@ module MakePDF
     end
 
     def test_invalid_when_file_missing
-      refute SourceFile.new("report.pdf", root: @root).valid?
+      expected_failure do
+        refute SourceFile.new("report.pdf", root: @root).valid?
+      end
     end
 
     def test_valid_when_file_exists
-      FileUtils.touch(File.join(@base, "report.pdf"))
-      assert SourceFile.new("report.pdf", root: @root).valid?
+      expected_failure do
+        FileUtils.touch(File.join(@base, "report.pdf"))
+        assert SourceFile.new("report.pdf", root: @root).valid?
+      end
     end
 
     def test_read_yields_lines
-      File.write(File.join(@base, "report.pdf"), "line1\nline2\n")
-      lines = []
-      SourceFile.new("report.pdf", root: @root).read { |line| lines << line }
-      assert_equal ["line1\n", "line2\n"], lines
+      expected_failure do
+        File.write(File.join(@base, "report.pdf"), "line1\nline2\n")
+        lines = []
+        SourceFile.new("report.pdf", root: @root).read { |line| lines << line }
+        assert_equal ["line1\n", "line2\n"], lines
+      end
     end
 
     def test_with_root_returns_same_class
@@ -130,14 +140,18 @@ module MakePDF
     end
 
     def test_to_url_for_local_root
-      src = SourceFile.new("report.pdf", root: @root)
-      assert_equal "file://#{@base}/report.pdf", src.to_url.to_s
+      expected_failure do
+        src = SourceFile.new("report.pdf", root: @root)
+        assert_equal "file://#{@base}/report.pdf", src.to_url.to_s
+      end
     end
 
     def test_to_url_after_rerooting_to_http_root
-      https_root = HttpRoot.new("/", host: "example.com")
-      remote = SourceFile.new("report.pdf", root: @root).with_root(https_root)
-      assert_equal "https://example.com/report.pdf", remote.to_url.to_s
+      expected_failure do
+        https_root = HttpRoot.new("/", host: "example.com")
+        remote = SourceFile.new("report.pdf", root: @root).with_root(https_root)
+        assert_equal "https://example.com/report.pdf", remote.to_url.to_s
+      end
     end
   end
 
@@ -152,10 +166,12 @@ module MakePDF
     end
 
     def test_create_touches_file
-      file = TargetFile.new("out.pdf", root: @root)
-      refute file.valid?
-      file.create
-      assert file.valid?
+      expected_failure do
+        file = TargetFile.new("out.pdf", root: @root)
+        refute file.valid?
+        file.create
+        assert file.valid?
+      end
     end
 
     def test_with_root_rejects_remote_root
