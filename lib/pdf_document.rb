@@ -37,12 +37,6 @@ module MakePDF
     def /(other)
       to_path.join(other)
     end
-
-    def to_url
-      host = nil
-      host = root.host if root.respond_to?(:host)
-      URI::Generic.build(scheme: root.scheme, host: host, path: to_path.to_s)
-    end
   end
 
   module RootedPathObject
@@ -56,6 +50,12 @@ module MakePDF
 
     def to_path
       return root / path
+    end
+
+    def to_url
+      host = nil
+      host = root.host if root.respond_to?(:host)
+      URI::Generic.build(scheme: root.scheme, host: host, path: to_path.to_s)
     end
 
     def with_root(new_root)
