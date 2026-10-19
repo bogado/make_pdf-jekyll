@@ -27,15 +27,11 @@ module MakePDF
     end
 
     def to_path
-      root / path
+      @path
     end
 
     def valid?
       false
-    end
-
-    def root
-      raise NotImplementedError, "Root was not implemeted."
     end
 
     def to_url
@@ -52,6 +48,10 @@ module MakePDF
     def initialize(*parts, root:, **opts)
       super
       @root = root
+    end
+
+    def to_path
+      return root / path
     end
 
     def with_root(new_root)

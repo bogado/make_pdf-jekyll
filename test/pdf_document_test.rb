@@ -45,9 +45,7 @@ module MakePDF
     end
 
     def test_has_no_root_concept_by_design
-      expected_failure do
-        refute BarePathObject.new("a").respond_to?(:root)
-      end
+      refute BarePathObject.new("a").respond_to?(:root)
     end
 
     def test_accepts_nil_root_without_raising
@@ -74,13 +72,11 @@ module MakePDF
     end
 
     def test_create_makes_missing_nested_directories
-      expected_failure do
-        target = File.join(@base, "a", "b", "c")
-        dir = RootDir.new(target)
-        refute dir.valid?
-        dir.create
-        assert dir.valid?
-      end
+      target = File.join(@base, "a", "b", "c")
+      dir = RootDir.new(target)
+      refute dir.valid?
+      dir.create
+      assert dir.valid?
     end
   end
 
