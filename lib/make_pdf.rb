@@ -71,6 +71,8 @@ module MakePDF
   end
 end
 
-Dir[File.join(__dir__, 'make_pdf/', '**', '*.rb')].each do |file| 
-  require file
+Dir[File.join(__dir__, 'make_pdf/', '**', '*.rb')].each do |file|
+  # `jekyll.rb` is the plugin entrypoint, it requires this file itself,
+  # requiring it back from here would circle back into it mid-load.
+  require file unless File.basename(file) == 'jekyll.rb'
 end

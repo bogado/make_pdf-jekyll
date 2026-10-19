@@ -1,6 +1,5 @@
 require 'fileutils'
 require 'pathname'
-require 'make_pdf'
 
 module MakePDF
   module CommandBased
