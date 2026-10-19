@@ -107,25 +107,19 @@ module MakePDF
     end
 
     def test_invalid_when_file_missing
-      expected_failure do
-        refute SourceFile.new("report.pdf", root: @root).valid?
-      end
+      refute SourceFile.new("report.pdf", root: @root).valid?
     end
 
     def test_valid_when_file_exists
-      expected_failure do
-        FileUtils.touch(File.join(@base, "report.pdf"))
-        assert SourceFile.new("report.pdf", root: @root).valid?
-      end
+      FileUtils.touch(File.join(@base, "report.pdf"))
+      assert SourceFile.new("report.pdf", root: @root).valid?
     end
 
     def test_read_yields_lines
-      expected_failure do
-        File.write(File.join(@base, "report.pdf"), "line1\nline2\n")
-        lines = []
-        SourceFile.new("report.pdf", root: @root).read { |line| lines << line }
-        assert_equal ["line1\n", "line2\n"], lines
-      end
+      File.write(File.join(@base, "report.pdf"), "line1\nline2\n")
+      lines = []
+      SourceFile.new("report.pdf", root: @root).read { |line| lines << line }
+      assert_equal ["line1\n", "line2\n"], lines
     end
 
     def test_with_root_returns_same_class
@@ -136,18 +130,14 @@ module MakePDF
     end
 
     def test_to_url_for_local_root
-      expected_failure do
-        src = SourceFile.new("report.pdf", root: @root)
-        assert_equal "file://#{@base}/report.pdf", src.to_url.to_s
-      end
+      src = SourceFile.new("report.pdf", root: @root)
+      assert_equal "file://#{@base}/report.pdf", src.to_url.to_s
     end
 
     def test_to_url_after_rerooting_to_http_root
-      expected_failure do
-        https_root = HttpRoot.new("/", host: "example.com")
-        remote = SourceFile.new("report.pdf", root: @root).with_root(https_root)
-        assert_equal "https://example.com/report.pdf", remote.to_url.to_s
-      end
+      https_root = HttpRoot.new("/", host: "example.com")
+      remote = SourceFile.new("report.pdf", root: @root).with_root(https_root)
+      assert_equal "https://example.com/report.pdf", remote.to_url.to_s
     end
   end
 
@@ -162,12 +152,10 @@ module MakePDF
     end
 
     def test_create_touches_file
-      expected_failure do
-        file = TargetFile.new("out.pdf", root: @root)
-        refute file.valid?
-        file.create
-        assert file.valid?
-      end
+      file = TargetFile.new("out.pdf", root: @root)
+      refute file.valid?
+      file.create
+      assert file.valid?
     end
 
     def test_with_root_rejects_remote_root

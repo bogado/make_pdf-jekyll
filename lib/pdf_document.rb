@@ -34,6 +34,10 @@ module MakePDF
       false
     end
 
+    def /(other)
+      to_path.join(other)
+    end
+
     def to_url
       host = nil
       host = root.host if root.respond_to?(:host)
