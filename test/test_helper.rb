@@ -12,6 +12,8 @@ class Minitest::Test
   rescue Minitest::Assertion, StandardError, NotImplementedError => e
     skip("Expected failure (not yet implemented): #{e.message}")
   else
-    flunk("Expected failure now passes! Update the test to assert the real behavior.")
+    failure = Minitest::Assertion.new("Expected failure now passes! Update the test to assert the real behavior.")
+    failure.set_backtrace(caller)
+    raise failure
   end
 end
